@@ -1,861 +1,687 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TERMINAL MASTER [V25 DATA FIX]</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKYNET FERRARI V65 - AUTO SELIC BCB</title>
+    <!-- Chart.js + Luxon Adapter Nativos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1"></script>
+    <style>
+        :root {
+            --bg: #000000;
+            --card: #080808;
+            --border: #222222;
+            --green: #00ff41;
+            --red: #ff3333;
+            --accent: #00ffff;
+            --yellow: #f59e0b;
+            --purple: #a855f7;
+            --subtext: #888888;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background-color: var(--bg); 
+            color: #fff; 
+            font-family: 'Verdana', sans-serif; 
+            margin: 0; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
 
-<style>
-  :root { 
-    --bg: #030711; --panel: #070d19; --card: #0b111f; --text: #c9d7f2; 
-    --muted: #637599; --accent: #f7931a; --border: #1a243f; 
-    --buy: #00ff9d; --accumulate: #d400ff; 
-    --gold: #ffd700; --quantum: #00d4ff; --warning: #ffaa00;
-    --font: 'Inter', system-ui, sans-serif; --mono: 'Consolas', monospace; 
-  }
-  * { box-sizing: border-box; outline: none; }
-  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 12px; overflow: hidden; height: 100vh; }
-  
-  .cockpit { 
-    display: grid; 
-    grid-template-columns: 1fr 280px 320px; 
-    grid-template-rows: 40px 1fr;
-    height: 100vh; 
-    overflow: hidden;
-  }
-  
-  header { 
-    grid-column: 1 / -1; 
-    background: var(--panel); border-bottom: 1px solid var(--border); 
-    display: flex; align-items: center; padding: 0 15px; gap: 15px;
-  }
-  .logo { font-weight: 900; color: var(--accent); font-style: italic; font-size: 14px; letter-spacing: 1px; }
-  .live-dot { width: 8px; height: 8px; background: #00ff9d; border-radius: 50%; box-shadow: 0 0 10px #00ff9d; animation: pulse 1s infinite; }
-  
-  .ctrl { display: flex; flex-direction: column; }
-  label { color: var(--muted); font-size: 8px; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
-  select, input { background: #040812; border: 1px solid #1e2d4a; color: #fff; padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 11px; }
+        .toolbar { 
+            background: #050505; 
+            border-bottom: 2px solid #222; 
+            padding: 5px 15px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            height: 50px; 
+            flex-shrink: 0; 
+        }
+        .logo-title { font-size: 1.1rem; font-weight: 900; color: #fff; letter-spacing: 1px; }
+        .logo-sub { font-size: 0.65rem; color: var(--green); font-weight: 900; }
+        .live-price { font-size: 1.2rem; font-weight: bold; font-family: monospace; color: var(--green); }
 
-  .chart-area { position: relative; background: #050a13; border-right: 1px solid var(--border); overflow: hidden; }
-  .indicators-area { background: var(--panel); border-right: 1px solid var(--border); padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-  .finance-area { background: #080c14; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .controls-group { display: flex; align-items: center; gap: 10px; }
 
-  .panel-box { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 10px; }
-  .p-head { font-size: 10px; font-weight: 800; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #ffffff10; padding-bottom: 4px; }
-  
-  /* TRADING */
-  .rec-box { background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 4px; padding: 10px; text-align: center; transition: 0.2s; }
-  .rec-title { font-size: 9px; color: var(--muted); font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
-  .rec-action { font-size: 16px; font-weight: 900; margin: 4px 0; font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .rec-detail { font-size: 11px; color: #fff; font-weight: bold; margin-bottom: 6px; }
-  .rec-prob { border-top: 1px solid #333; margin-top: 6px; padding-top: 6px; font-size: 10px; color: var(--quantum); font-weight: bold; display: flex; justify-content: space-between; }
+        .input-picker-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #111;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+        .input-picker-box label { font-size: 0.65rem; color: var(--green); font-weight: bold; }
+        .input-picker-box input { 
+            background: #000; 
+            color: #fff; 
+            border: 1px solid var(--green); 
+            padding: 3px 6px; 
+            font-size: 0.75rem; 
+            border-radius: 3px; 
+            font-weight: bold;
+            font-family: monospace;
+        }
 
-  .heat-bar { height: 10px; background: linear-gradient(90deg, #0011ff, #00a8ff, #00c7a7, #27e46d, #ff0062); border-radius: 5px; position: relative; margin: 10px 0; }
-  .heat-ptr { position: absolute; top: -2px; width: 4px; height: 14px; background: #fff; box-shadow: 0 0 8px #fff; border-radius: 2px; transition: left 0.1s; }
-  .gauge-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .gauge-item { background: rgba(0,0,0,0.2); border-radius: 4px; padding: 6px; text-align: center; }
-  .sig-list { max-height: 250px; overflow-y: auto; border: 1px solid var(--border); background: rgba(0,0,0,0.2); }
-  .sig-item { display: grid; grid-template-columns: 50px 30px 1fr; padding: 4px 6px; border-bottom: 1px solid #ffffff05; cursor: pointer; font-size: 10px; }
-  .sig-item:hover { background: #ffffff05; }
+        .metrics-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 8px;
+            padding: 8px 15px;
+            background: #030303;
+            border-bottom: 1px solid #222;
+            flex-shrink: 0;
+        }
+        .metric-card {
+            background: #0a0a0a;
+            border: 1px solid #1a1a1a;
+            padding: 6px 10px;
+            border-radius: 4px;
+        }
+        .metric-label { font-size: 0.6rem; color: var(--subtext); text-transform: uppercase; font-weight: bold; }
+        .metric-value { font-size: 0.88rem; font-weight: bold; color: #fff; margin-top: 2px; }
+        .metric-highlight { color: var(--green); }
+        .metric-accent { color: var(--accent); }
+        .metric-yellow { color: var(--yellow); }
+        .metric-purple { color: var(--purple); }
 
-  .fin-label { color: #666; font-size: 9px; text-transform: uppercase; display: block; margin-bottom: 2px; }
-  .val-gold { color: var(--gold); font-size: 20px; font-weight: bold; line-height: 1.1; font-family: var(--mono); }
-  .val-fiat { color: #cfcfcf; font-size: 12px; font-weight: 600; }
-  .val-btc { color: var(--accent); font-size: 12px; font-weight: 600; text-align: right; }
-  .sub-val { display: flex; justify-content: space-between; margin-top: 5px; padding-top: 5px; border-top: 1px dashed #333; }
-  
-  .input-group { display: flex; gap: 5px; margin-top: 5px; align-items: center; }
-  .fin-input { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 6px; border-radius: 4px; font-size: 11px; width: 100%; height: 28px; }
-  
-  /* DATA GERAL (Pequeno) */
-  input[type="date"] {
-      font-family: var(--mono);
-      font-size: 11px; 
-      letter-spacing: -0.5px;
-      padding-right: 0;
-  }
+        .content-split { flex: 1; display: flex; width: 100%; height: 100%; overflow: hidden; }
+        
+        .chart-section {
+            flex: 2;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+            border-right: 1px solid #222;
+            cursor: crosshair;
+        }
 
-  .btn { border: none; padding: 0 8px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px; height: 28px; display:flex; align-items:center; justify-content:center; width:100%; }
-  .btn-accent { background: var(--buy); color: #000; }
-  .btn-btc { background: rgba(247, 147, 26, 0.2); color: var(--accent); border: 1px solid var(--accent); }
-  
-  .impact-panel { background: rgba(255, 170, 0, 0.1); border: 1px solid var(--warning); padding: 8px; margin-top: 8px; border-radius: 4px; font-size: 11px; color: var(--warning); text-align: center; display: none; }
+        .table-section {
+            flex: 1;
+            min-width: 460px;
+            max-width: 540px;
+            background: #040404;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
 
-  .logs-container { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; padding: 5px; min-height: 150px; }
-  .item { display: flex; justify-content: space-between; align-items: center; padding: 6px 4px; border-bottom: 1px solid #1a1a1a; font-size: 11px; }
-  .btn-del { color: var(--sell); font-weight: 900; font-family: var(--mono); cursor: pointer; padding: 2px 8px; border: 1px solid var(--sell); border-radius: 4px; margin-left: 8px; }
-  
-  .proj-box { border: 1px solid var(--quantum); border-radius: 6px; padding: 8px; margin-bottom: 8px; background: rgba(0, 212, 255, 0.05); }
-  .proj-title { font-size: 9px; color: var(--quantum); text-transform: uppercase; font-weight: bold; }
-  .proj-val { font-size: 16px; font-weight: bold; color: var(--quantum); text-align: right; }
-  .proj-sub { font-size: 9px; color: #888; text-align: right; margin-top: 2px; }
+        .table-header-title {
+            padding: 8px 12px;
+            background: #080808;
+            border-bottom: 1px solid #222;
+            font-size: 0.72rem;
+            font-weight: bold;
+            color: var(--green);
+            display: flex;
+            justify-content: space-between;
+        }
 
-  /* === ESTILO DESTAQUE TURNO === */
-  .turno-highlight { border: 2px solid var(--buy); background: rgba(0, 255, 157, 0.08); padding: 12px; }
-  .turno-highlight .input-group { 
-      display: grid; 
-      grid-template-columns: 1fr 90px 45px; /* Ajuste no grid */
-      gap: 6px; 
-  }
-  
-  /* APENAS O CAMPO DE VALOR FICA GRANDE */
-  #valorBruto { 
-      height: 42px; 
-      font-size: 16px; 
-      font-weight: bold; 
-      border-color: #005f3a; 
-      width: 100%; 
-  }
+        .table-wrapper { flex: 1; overflow-y: auto; }
 
-  /* O CAMPO DE DATA FICA PEQUENO E DISCRETO */
-  #dataTurno {
-      height: 42px; /* Altura igual ao botão */
-      font-size: 10px !important; /* LETRA PEQUENA */
-      font-weight: normal;
-      border-color: #005f3a;
-      width: 100%;
-      text-align: center;
-  }
+        table { width: 100%; border-collapse: collapse; font-size: 0.68rem; text-align: left; }
 
-  /* BOTÃO DO TURNO */
-  .turno-highlight button { 
-      height: 42px; 
-      font-size: 14px; 
-      width: 100%; 
-      background: var(--buy); 
-      color: #000; 
-      box-shadow: 0 0 10px rgba(0, 255, 157, 0.3); 
-      border: none; border-radius: 4px; font-weight: 900; cursor: pointer;
-  }
-  .turno-label { color: var(--buy); font-size: 12px; font-weight: 900; text-transform: uppercase; display: block; margin-bottom: 6px; letter-spacing: 0.5px; }
+        th {
+            position: sticky;
+            top: 0;
+            background: #0d0d0d;
+            color: var(--subtext);
+            padding: 6px 8px;
+            border-bottom: 1px solid #222;
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            z-index: 5;
+        }
 
-  /* === ESTILO SATS EXTERNO (COMPACTO) === */
-  .sats-highlight { border: 1px dashed var(--accumulate); background: rgba(212, 0, 255, 0.05); padding: 8px; margin-bottom: 8px; }
-  .sats-highlight .input-group { 
-      display: grid; 
-      grid-template-columns: 1fr 90px 35px; 
-      gap: 5px; 
-  }
-  .sats-highlight input { height: 28px; font-size: 11px; border-color: #5a006e; width: 100%; }
-  .sats-label { color: var(--accumulate); font-size: 10px; font-weight: 900; text-transform: uppercase; display: block; margin-bottom: 4px; }
-  .btn-sats { background: var(--accumulate); color: #fff; height: 28px; font-size: 11px; border:none; border-radius:4px; cursor:pointer; font-weight:bold; width: 100%; }
+        td { padding: 5px 8px; border-bottom: 1px solid #111; font-family: monospace; }
+        tr:hover { background: #111111; }
 
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-thumb { background: #333; }
-</style>
+        .row-spot { background: rgba(245, 158, 11, 0.18) !important; font-weight: bold; border-y: 1px solid var(--yellow); }
+        .row-call { color: #88ffff; }
+        .row-put { color: #d8b4fe; }
+
+        .hud-tag { 
+            position: absolute; 
+            top: 15px; 
+            left: 15px; 
+            pointer-events: none; 
+            background: rgba(0,0,0,0.92); 
+            border-left: 3px solid var(--accent); 
+            padding: 8px 12px; 
+            border-radius: 4px; 
+            z-index: 10; 
+            border: 1px solid #222; 
+            min-width: 280px; 
+        }
+        .reset-btn { 
+            position: absolute; 
+            top: 8px; 
+            right: 15px; 
+            background: rgba(0, 255, 65, 0.1); 
+            border: 1px solid var(--green); 
+            color: var(--green); 
+            padding: 5px 12px; 
+            font-size: 0.75rem; 
+            cursor: pointer; 
+            z-index: 1000; 
+            border-radius: 3px; 
+            font-weight: bold; 
+        }
+        .reset-btn:hover { background: var(--green); color: #000; }
+
+        .val-atual { color: #fff; font-weight: 900; font-size: 0.95rem; }
+        .val-mult { font-weight: 900; font-size: 0.85rem; margin-top: 2px; color: var(--accent); }
+
+        .backtest-box {
+            background: #090909;
+            border-bottom: 1px solid #222;
+            padding: 8px 12px;
+            font-size: 0.72rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .audit-title-line {
+            display: flex;
+            justify-content: space-between;
+            color: var(--subtext);
+            font-size: 0.65rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .audit-results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            background: #000;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid #1a1a1a;
+        }
+        .audit-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: monospace;
+            font-size: 0.72rem;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 
-<div class="cockpit">
-  <header>
-    <div class="logo">TERMINAL MASTER [V25]</div>
-    <div class="live-dot"></div>
-    <div class="ctrl">
-      <label>TF</label>
-      <select id="tf" onchange="startEngine()">
-        <option value="4h" selected>4H</option>
-        <option value="1d">1D</option>
-        <option value="1w">1S</option>
-      </select>
-    </div>
-    <div class="ctrl">
-      <label>CANDLES</label>
-      <select id="limit" onchange="startEngine()">
-        <option value="1000" selected>1.000</option>
-        <option value="5000">5.000</option>
-        <option value="10000">10.000</option>
-        <option value="20000">20.000</option>
-      </select>
-    </div>
-    <div id="price-box" style="margin-left:auto; font-family:var(--mono); font-weight:bold; color:#fff; font-size:16px;">--</div>
-  </header>
-
-  <div class="chart-area">
-    <canvas id="mainChart"></canvas>
-  </div>
-
-  <aside class="indicators-area">
-    <div class="panel-box" style="border-color: #00b4d8;">
-      <div class="p-head">🧠 INTELIGÊNCIA DE APORTE</div>
-      <div class="rec-box" id="recBox">
-        <div class="rec-title">ÚLTIMO SINAL (CONFIRMADO)</div>
-        <div class="rec-action" id="recAct">AGUARDANDO...</div>
-        <div class="rec-detail" id="recDet">...</div>
-        <div class="rec-prob">
-           <span>ZONA ATUAL:</span>
-           <span id="zoneProb" style="color:#fff">--</span>
+    <div class="toolbar">
+        <div style="line-height:1">
+            <div class="logo-title">SKYNET FERRARI V65</div>
+            <div class="logo-sub">AUTO BCB SELIC API ENGINE</div>
         </div>
-      </div>
-    </div>
 
-    <div class="panel-box">
-      <div class="p-head">RASTREAMENTO (σ)</div>
-      <div style="text-align:center; font-size:18px; font-weight:900; color:#fff;" id="sigmaVal">0.00σ</div>
-      <div class="heat-bar"><div class="heat-ptr" id="heatPtr" style="left:50%"></div></div>
-    </div>
+        <div class="controls-group">
+            <div class="input-picker-box">
+                <label for="selicRateInput">SELIC (% a.a.):</label>
+                <input type="number" id="selicRateInput" value="10.50" min="0" max="30" step="0.25" style="width: 65px;" oninput="saveAndRefresh()">
+            </div>
 
-    <div class="panel-box">
-      <div class="p-head">DINÂMICA</div>
-      <div class="gauge-row">
-        <div class="gauge-item">
-          <div style="font-size:8px; color:#aaa">VOLATILIDADE</div>
-          <canvas id="gVol" width="60" height="30"></canvas>
-          <div style="font-size:12px; font-weight:bold; color:var(--buy);" id="tVol">0.0</div>
+            <div class="input-picker-box">
+                <label for="opStartDate">INÍCIO OPERAÇÃO:</label>
+                <input type="date" id="opStartDate" onchange="saveAndRefresh()">
+            </div>
+            <button class="reset-btn" style="position:static;" onclick="setTodayDate()">HOJE</button>
         </div>
-        <div class="gauge-item">
-          <div style="font-size:8px; color:#aaa">ACELERAÇÃO</div>
-          <canvas id="gAcc" width="60" height="30"></canvas>
-          <div style="font-size:12px; font-weight:bold; color:var(--accent);" id="tAcc">0.0</div>
+
+        <div class="live-price" id="mainPrice">R$ ---.---</div>
+    </div>
+
+    <!-- Painel de Métricas -->
+    <div class="metrics-bar">
+        <div class="metric-card">
+            <div class="metric-label">Preço da Data Selecionada</div>
+            <div class="metric-value metric-yellow" id="mSpot">R$ ---</div>
         </div>
-      </div>
-    </div>
-
-    <div class="panel-box" style="flex:1; display:flex; flex-direction:column;">
-      <div class="p-head">ALERTAS</div>
-      <div class="sig-list" id="sigList"></div>
-    </div>
-  </aside>
-
-  <aside class="finance-area">
-    
-    <div class="panel-box">
-      <span class="fin-label">PATRIMÔNIO LÍQUIDO (TOTAL)</span>
-      <div class="val-gold" id="totalGeral">R$ 0,00</div>
-      <div class="sub-val">
-        <div>
-          <span class="fin-label">CAIXA DISPONÍVEL</span>
-          <span class="val-fiat" id="saldoCaixa" style="color:#00b4d8; font-size:14px;">R$ 0,00</span>
+        <div class="metric-card">
+            <div class="metric-label">Volatilidade (IV Auto 30d)</div>
+            <div class="metric-value metric-accent" id="mIv">--- %</div>
         </div>
-        <div>
-          <span class="fin-label" style="text-align:right">EM BITCOIN</span>
-          <span class="val-btc" id="saldoSatsDisplay">0 sats</span>
+        <div class="metric-card">
+            <div class="metric-label">Taxa Juros (BCB Auto)</div>
+            <div class="metric-value metric-highlight" id="mRate">10.50%</div>
         </div>
-      </div>
-      <div style="height:80px; margin-top:10px;">
-        <canvas id="finChart"></canvas>
-      </div>
+        <div class="metric-card">
+            <div class="metric-label">Call OTM ($\Delta \approx 0.20$)</div>
+            <div class="metric-value metric-accent" id="mRecCall">R$ ---</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Put OTM ($\Delta \approx -0.20$)</div>
+            <div class="metric-value metric-purple" id="mRecPut">R$ ---</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Audit Call (30D)</div>
+            <div class="metric-value" id="mAuditCall">ANALISANDO</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Audit Put (30D)</div>
+            <div class="metric-value" id="mAuditPut">ANALISANDO</div>
+        </div>
     </div>
 
-    <div class="proj-box">
-      <div class="proj-title">PROJEÇÃO DE FECHO</div>
-      <div class="proj-val" id="projFinal">R$ 0,00</div>
-      <div class="proj-sub" id="projDetalhe">Calculando turnos...</div>
+    <div class="content-split">
+        <div class="chart-section">
+            <button class="reset-btn" onclick="resetScale()">RESET ESCALA</button>
+
+            <div class="hud-tag">
+                <div id="hudSpot" class="val-atual">SPOT (DATA): R$ ---</div>
+                <div id="hudDate" class="val-mult">DATA OPERAÇÃO: --/--/----</div>
+                <div id="hud30d" style="font-size:0.7rem; color:#f59e0b; margin-top:3px;">PREÇO EM 30 DIAS: R$ ---</div>
+            </div>
+
+            <canvas id="chartEngine"></canvas>
+        </div>
+
+        <div class="table-section">
+            <div class="backtest-box">
+                <div class="audit-title-line">
+                    <span>AUDITORIA DE EXERCÍCIO (30 DIAS)</span>
+                    <span id="auditStatusTag" style="color:var(--yellow);">EM CURSO</span>
+                </div>
+                <div class="audit-results-grid">
+                    <div class="audit-item">
+                        <span style="color:var(--accent);">CALL:</span>
+                        <span id="auditCallValue" style="color:#fff;">---</span>
+                    </div>
+                    <div class="audit-item">
+                        <span style="color:var(--purple);">PUT:</span>
+                        <span id="auditPutValue" style="color:#fff;">---</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-header-title">
+                <span>RÉGUA DE STRIKES DINÂMICA (MAIOR &#8594; MENOR)</span>
+                <span>30 DTE FIXO</span>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Strike (R$)</th>
+                            <th>Dist. %</th>
+                            <th>Prêmio (R$)</th>
+                            <th>Delta ($\Delta$)</th>
+                            <th>Theta ($\Theta$/dia)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr><td colspan="6" style="text-align:center; color:#555;">Calculando parâmetros quantitativos...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <div class="panel-box turno-highlight">
-      <span class="turno-label">🦁 LANÇAR TURNO</span>
-      <div class="input-group">
-        <input type="number" id="valorBruto" placeholder="R$ Bruto" inputmode="decimal">
-        <input type="date" id="dataTurno">
-        <button onclick="lancar()">OK</button>
-      </div>
-    </div>
+    <script>
+        let chartEngine = null;
+        let ws = null;
+        let rawKlinesData = [];
 
-    <div class="panel-box sats-highlight">
-      <span class="sats-label">💎 LANÇAR SATS (EXTERNO)</span>
-      <div class="input-group">
-        <input type="number" id="satsExterno" placeholder="Qtd Sats" inputmode="decimal">
-        <input type="date" id="dataSats">
-        <button class="btn-sats" onclick="lancarSatsExtra()">OK</button>
-      </div>
-    </div>
-
-    <div class="panel-box" style="border-color: var(--accent);">
-      <span class="fin-label" style="color:var(--accent)">CONVERTER CAIXA EM BITCOIN</span>
-      <div class="input-group">
-        <input type="number" id="valorBtcCompra" placeholder="Valor em R$ do Caixa" class="fin-input">
-        <button class="btn btn-btc" style="width: 80px;" onclick="comprarBTC()">COMPRAR</button>
-      </div>
-      <div id="previewBtc" style="font-size:9px; color:#666; text-align:right; margin-top:2px;">...</div>
-    </div>
-
-    <div class="panel-box" style="border-color: var(--warning);">
-      <span class="fin-label" style="color:var(--warning)">SIMULAR OU LANÇAR SAÍDA</span>
-      <div class="input-group">
-        <input type="number" id="extraInput" placeholder="Valor R$" class="fin-input" oninput="simularImpacto()">
-        <input type="date" id="dataGasto" class="fin-input">
-      </div>
-      <div id="painelImpacto" class="impact-panel"></div>
-      <button id="btnConfirmarSaida" class="btn" style="background:var(--sell); color:#fff; margin-top:5px; display:none;" onclick="lancarGasto()">CONFIRMAR SAÍDA</button>
-    </div>
-
-    <div class="logs-container">
-        <div id="historico"></div>
-    </div>
-
-    <div class="panel-box" style="margin-top:auto; border-top:1px dashed #333; flex-shrink: 0;">
-       <span class="fin-label">BACKUP / RESTAURAÇÃO</span>
-       <div class="input-group" style="justify-content:space-between;">
-         <button class="btn" style="background:#222; color:#00ff88; width:48%;" onclick="exportarJSON()">💾 SALVAR</button>
-         <input type="file" id="fileInput" style="display:none" onchange="importarJSON(event)">
-         <button class="btn" style="background:#222; color:#0077ff; width:48%;" onclick="document.getElementById('fileInput').click()">📂 LER</button>
-       </div>
-    </div>
-  </aside>
-</div>
-
-<script>
-// ============================================================
-// MODULO FINANCEIRO (V25)
-// ============================================================
-const FERIADOS_STOP = ["2026-01-01", "2026-02-16", "2026-02-17", "2026-04-03", "2026-04-21", "2026-05-01", "2026-06-24", "2026-07-02", "2026-09-07", "2026-10-12", "2026-11-02", "2026-11-15", "2026-12-25"];
-let db = JSON.parse(localStorage.getItem('blindagem_quantum_final_v25')) || { tesouroTotal: 0, logsMes: [], historicoLogs: [] };
-let finChart;
-let globalCaixaReais = 0; 
-let globalSatsTotal = 0; 
-let globalMediaDia = 0; 
-
-let lastKnownPrice = parseFloat(localStorage.getItem('btc_last_price')) || 600000; 
-let livePrice = lastKnownPrice;
-
-function saveFin() { 
-    localStorage.setItem('blindagem_quantum_final_v25', JSON.stringify(db)); 
-    renderFinFull(); 
-    updateLiveCalculations(); 
-}
-
-function fmtData(isoDate) {
-    if(!isoDate) return "--/--";
-    const p = isoDate.split('-'); 
-    return `${p[2]}/${p[1]}`;
-}
-
-function lancar() {
-    const v = parseFloat(document.getElementById('valorBruto').value);
-    if (!v) return;
-    db.logsMes.push({ id: Date.now(), tipo: 'rec', valor: v, label: `ENTRADA`, data: document.getElementById('dataTurno').value });
-    document.getElementById('valorBruto').value = ''; 
-    saveFin();
-}
-
-function lancarSatsExtra() {
-    const s = parseInt(document.getElementById('satsExterno').value);
-    if (!s || s <= 0) return;
-    db.logsMes.push({ 
-        id: Date.now(), 
-        tipo: 'sats_extra', 
-        valor: 0, 
-        sats: s, 
-        label: `SATS EXTERNO`, 
-        data: document.getElementById('dataSats').value 
-    });
-    document.getElementById('satsExterno').value = '';
-    alert(`${s} Sats adicionados!`);
-    saveFin();
-}
-
-function simularImpacto() {
-    const v = parseFloat(document.getElementById('extraInput').value);
-    const painel = document.getElementById('painelImpacto');
-    const btn = document.getElementById('btnConfirmarSaida');
-    if(!v || v <= 0) { painel.style.display = 'none'; btn.style.display = 'none'; return; }
-    painel.style.display = 'block'; btn.style.display = 'block';
-    
-    if(globalMediaDia > 0) {
-        const turnos = (v / globalMediaDia).toFixed(1);
-        painel.innerHTML = `⚠️ Essa saída custa <b>${turnos} TURNOS</b> de trabalho.`;
-    } else {
-        painel.innerHTML = `⚠️ Lance entradas para calcular o impacto.`;
-    }
-}
-
-function lancarGasto() {
-    const v = parseFloat(document.getElementById('extraInput').value);
-    if (!v) return;
-    const d = document.getElementById('dataGasto').value;
-    db.logsMes.push({ id: Date.now(), tipo: 'gasto', valor: -v, label: `SAÍDA`, data: d });
-    document.getElementById('extraInput').value = ''; 
-    document.getElementById('painelImpacto').style.display = 'none';
-    document.getElementById('btnConfirmarSaida').style.display = 'none';
-    saveFin();
-}
-
-function comprarBTC() {
-    const v = parseFloat(document.getElementById('valorBtcCompra').value);
-    if (!v || v <= 0) return;
-    if (v > globalCaixaReais) { alert("Saldo insuficiente no caixa!"); return; }
-    const sats = Math.floor((v / livePrice) * 100000000);
-    db.logsMes.push({ id: Date.now(), tipo: 'btc_buy', valor: -v, sats: sats, label: `COMPRA BTC`, data: new Date().toISOString().split('T')[0] });
-    document.getElementById('valorBtcCompra').value = '';
-    alert(`Ordem Executada: R$ ${v} -> ${sats} sats`);
-    saveFin();
-}
-
-function apagarItem(id) {
-    if(confirm("Apagar este lançamento?")) { db.logsMes = db.logsMes.filter(l => l.id !== id); saveFin(); }
-}
-
-function exportarJSON() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
-    const a = document.createElement('a'); a.href = dataStr; a.download = "backup_terminal_btc.json"; a.click();
-}
-
-function importarJSON(e) {
-    const reader = new FileReader();
-    reader.onload = (ev) => { try { db = JSON.parse(ev.target.result); saveFin(); alert("Dados restaurados!"); } catch(e) { alert("Erro ao ler arquivo."); } };
-    reader.readAsText(e.target.files[0]);
-}
-
-function updateFinTextOnly() {
-    const priceToUse = livePrice > 0 ? livePrice : lastKnownPrice;
-    const valSatsBRL = (globalSatsTotal / 100000000) * priceToUse;
-    const totalAgora = globalCaixaReais + valSatsBRL;
-    document.getElementById('totalGeral').innerText = totalAgora.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
-    document.getElementById('saldoSatsDisplay').innerHTML = `${globalSatsTotal.toLocaleString()} sats<br><small style="color:#666">≈ R$ ${valSatsBRL.toFixed(0)}</small>`;
-}
-
-function renderFinFull() {
-    let caixa = db.tesouroTotal;
-    let satsTotal = 0;
-    db.logsMes.forEach(l => { caixa += l.valor; if(l.sats) satsTotal += l.sats; });
-    globalCaixaReais = caixa;
-    globalSatsTotal = satsTotal;
-
-    document.getElementById('saldoCaixa').innerText = caixa.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
-    updateFinTextOnly();
-
-    const entradas = db.logsMes.filter(l => l.tipo === 'rec');
-    const nTurnos = entradas.length;
-    const somaEntradas = entradas.reduce((s, l) => s + l.valor, 0);
-    const media = nTurnos > 0 ? (somaEntradas / nTurnos) : 0;
-    globalMediaDia = media; 
-
-    const hoje = new Date();
-    const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
-    let tRestantes = 0;
-    for (let d = hoje.getDate() + 1; d <= fimMes; d++) {
-        let dataCheck = new Date(hoje.getFullYear(), hoje.getMonth(), d);
-        if (!FERIADOS_STOP.includes(dataCheck.toISOString().split('T')[0])) {
-            let s = dataCheck.getDay();
-            if (s >= 1 && s <= 5) tRestantes += 2; else if (s === 6) tRestantes += 1;
+        // Busca a Taxa SELIC em tempo real direto da API do Banco Central do Brasil
+        async function fetchSelicBCB() {
+            try {
+                const res = await fetch('https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json');
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    const selicVal = parseFloat(data[0].valor);
+                    if (!isNaN(selicVal) && selicVal > 0) {
+                        document.getElementById('selicRateInput').value = selicVal.toFixed(2);
+                        saveAndRefresh();
+                    }
+                }
+            } catch(e) {
+                console.warn("Falha ao buscar SELIC automática do BCB, mantendo padrão:", e);
+            }
         }
-    }
-    
-    const priceToUse = livePrice > 0 ? livePrice : lastKnownPrice;
-    const valSatsBRL = (satsTotal / 100000000) * priceToUse;
-    const totalAgora = caixa + valSatsBRL;
-    const estFinal = totalAgora + (tRestantes * media);
 
-    document.getElementById('projFinal').innerText = estFinal.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
-    document.getElementById('projDetalhe').innerText = `Faltam ${tRestantes} turnos. Média USG: R$ ${media.toFixed(2)}`;
-
-    document.getElementById('historico').innerHTML = db.logsMes.slice().reverse().map(l => {
-        let cor = l.valor > 0 ? 'var(--buy)' : 'var(--sell)';
-        if(l.tipo === 'btc_buy') cor = 'var(--accent)';
-        if(l.tipo === 'sats_extra') cor = 'var(--accumulate)';
-        
-        let valDisplay = l.valor !== 0 ? l.valor.toFixed(2) : `+${l.sats} sats`;
-        
-        return `<div class="item">
-           <span>${fmtData(l.data)} - ${l.label}</span>
-           <div style="display:flex; align-items:center;">
-             <b style="color:${cor}">${valDisplay}</b>
-             <span class="btn-del" onclick="apagarItem(${l.id})">X</span>
-           </div>
-        </div>`;
-    }).join('');
-
-    renderFinChart(media, caixa, satsTotal);
-}
-
-function renderFinChart(media, caixaAtual, satsTotal) {
-    const ctx = document.getElementById('finChart').getContext('2d');
-    if(finChart) finChart.destroy();
-    
-    let labels = []; let dReal = []; let dProj = [];
-    let acBRL = db.tesouroTotal; let acSats = 0;
-    const logs = [...db.historicoLogs, ...db.logsMes].sort((a,b) => new Date(a.data) - new Date(b.data));
-    const priceToUse = livePrice > 0 ? livePrice : lastKnownPrice;
-
-    logs.forEach(l => {
-        acBRL += l.valor; if(l.sats) acSats += l.sats;
-        let valMomento = acBRL + ((acSats/100000000) * priceToUse);
-        labels.push(fmtData(l.data)); 
-        dReal.push(valMomento); dProj.push(null);
-    });
-    
-    const hoje = new Date();
-    const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
-    let acProj = dReal.length > 0 ? dReal[dReal.length-1] : 0;
-    if(dProj.length > 0) dProj[dProj.length-1] = acProj;
-    
-    for (let d = hoje.getDate() + 1; d <= fimMes; d++) {
-        let dataP = new Date(hoje.getFullYear(), hoje.getMonth(), d);
-        let tDia = 0;
-        if (!FERIADOS_STOP.includes(dataP.toISOString().split('T')[0])) {
-            let s = dataP.getDay();
-            tDia = (s >= 1 && s <= 5) ? 2 : (s === 6 ? 1 : 0);
+        function setTodayDate() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('opStartDate').value = todayStr;
+            saveAndRefresh();
         }
-        acProj += (tDia * media);
-        labels.push(d.toString()); dReal.push(null); dProj.push(acProj);
-    }
 
-    finChart = new Chart(ctx, {
-        type: 'line',
-        data: { 
-            labels, 
-            datasets: [
-                { data: dReal, borderColor: '#00ff88', borderWidth: 1.5, tension: 0.2, fill: true, backgroundColor: 'rgba(0,255,136,0.1)', pointRadius: 1 },
-                { data: dProj, borderColor: '#00d4ff', borderWidth: 1.5, borderDash: [3, 3], tension: 0.2, pointRadius: 0 }
-            ] 
-        },
-        options: { plugins:{legend:false}, scales:{x:{display:false}, y:{display:false}}, maintainAspectRatio:false, animation: false }
-    });
-}
+        function loadSavedSettings() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const savedDate = localStorage.getItem('skynet_ferrari_start_date') || todayStr;
+            const savedSelic = localStorage.getItem('skynet_selic_rate') || '10.50';
 
-// ============================================================
-// MODULO TRADING
-// ============================================================
-const LEVELS = {
-  'C30': { s: -3.0, p: 0.50, color: '#00ccff', size: 14, desc: 'FUNDO MÁXIMO' },
-  'C25': { s: -2.5, p: 0.34, color: '#0099ff', size: 12, desc: 'FUNDO FORTE' },
-  'C20': { s: -2.0, p: 0.24, color: '#0066ff', size: 10, desc: 'COMPRA ALTA' },
-  'C15': { s: -1.5, p: 0.16, color: '#3366ff', size: 8,  desc: 'COMPRA MÉDIA' },
-  'C10': { s: -1.0, p: 0.10, color: '#5588ff', size: 7,  desc: 'COMPRA LEVE' },
-  'C05': { s: -0.5, p: 0.06, color: '#77aaff', size: 6,  desc: 'INÍCIO COMPRA' },
-  'A30': { s: 3.0, p: 0.30, color: '#00ff00', size: 14, desc: 'ACÚMULO MÁXIMO (A)' },
-  'A25': { s: 2.5, p: 0.14, color: '#33ff33', size: 12, desc: 'ACÚMULO FORTE (A)' },
-  'A20': { s: 2.0, p: 0.09, color: '#66ff66', size: 10, desc: 'ACÚMULO ALTO (A)' },
-  'A15': { s: 1.5, p: 0.05, color: '#99ff99', size: 8,  desc: 'ACÚMULO MÉDIO (A)' },
-  'A10': { s: 1.0, p: 0.02, color: '#ccffcc', size: 7,  desc: 'ACÚMULO LEVE (A)' },
-};
-
-let chart = null;
-let rawData = [];
-let signals = [];
-let lastBasis = 0; let lastDev = 0; let lastATR = 0;
-let priceHistory = [];
-
-function calcATR(data, period=14) {
-    const atr = [];
-    for(let i=0; i<data.length; i++) {
-        const h = data[i].h; const l = data[i].l;
-        const c_prev = i > 0 ? data[i-1].c : h;
-        const tr = Math.max(h-l, Math.abs(h-c_prev), Math.abs(l-c_prev));
-        if(i < period) atr.push(tr);
-        else atr.push(((atr[i-1]*(period-1))+tr)/period);
-    }
-    return atr;
-}
-
-const customPlugin = {
-  id: 'customPlugin',
-  beforeDatasetsDraw(c) {
-    const {ctx, scales:{x,y}} = c;
-    if(!rawData.length) return;
-    const xMin=x.min, xMax=x.max;
-    let startIdx = rawData.findIndex(d => d.x >= xMin);
-    let endIdx = rawData.findIndex(d => d.x > xMax);
-    if(startIdx===-1) startIdx=0; if(endIdx===-1) endIdx=rawData.length;
-    
-    const visible = rawData.slice(startIdx, endIdx);
-    if(!visible.length) return;
-    const cw = Math.max(1, (c.width/visible.length)*0.7);
-    
-    visible.forEach(d => {
-       const xp=x.getPixelForValue(d.x), op=y.getPixelForValue(d.o), hp=y.getPixelForValue(d.h), lp=y.getPixelForValue(d.l), cp=y.getPixelForValue(d.c);
-       const col = d.c >= d.o ? '#00ff9d' : '#ff2a55';
-       ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=1;
-       ctx.beginPath(); ctx.moveTo(xp,hp); ctx.lineTo(xp,lp); ctx.stroke();
-       ctx.fillRect(xp-cw/2, Math.min(op,cp), cw, Math.max(1, Math.abs(cp-op)));
-    });
-  },
-  afterDraw(c) {
-    if(livePrice <= 0) return;
-    const {ctx, scales:{y}, chartArea:{right}} = c;
-    const yPos = y.getPixelForValue(livePrice);
-    if(yPos < y.top || yPos > y.bottom) return;
-    const label = "R$ " + livePrice.toFixed(0);
-    const pad = 4; const fontSize = 11;
-    ctx.font = `bold ${fontSize}px Consolas`;
-    const txtWidth = ctx.measureText(label).width;
-    ctx.fillStyle = livePrice >= (rawData[rawData.length-1]?.c || 0) ? '#00ff9d' : '#ff2a55';
-    ctx.beginPath();
-    ctx.roundRect(right, yPos - fontSize/2 - pad, txtWidth + (pad*2), fontSize + (pad*2), 3);
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.fillText(label, right + pad, yPos + (fontSize/3));
-  }
-};
-
-async function startEngine() {
-  const tf = document.getElementById('tf').value;
-  const limit = parseInt(document.getElementById('limit').value);
-  
-  let all = []; let endTime = null;
-  try {
-    while(all.length < limit) {
-        let url = `https://api.binance.com/api/v3/klines?symbol=BTCBRL&interval=${tf}&limit=1000`;
-        if(endTime) url += `&endTime=${endTime}`;
-        const res = await fetch(url);
-        const json = await res.json();
-        if(!json.length) break;
-        const chunk = json.map(d => ({x:d[0], o:+d[1], h:+d[2], l:+d[3], c:+d[4]}));
-        endTime = chunk[0].x - 1;
-        all = [...chunk, ...all];
-        await new Promise(r => setTimeout(r, 50));
-    }
-    if(all.length > limit) all = all.slice(all.length - limit);
-    rawData = all;
-    if(rawData.length) {
-       if(rawData[rawData.length-1].c > 0) livePrice = rawData[rawData.length-1].c;
-       processIndicators();
-    }
-  } catch(e) { console.error(e); }
-}
-
-function processIndicators() {
-  const c = rawData.map(d=>d.c);
-  const atrArr = calcATR(rawData, 14);
-  const basis=[], dev=[];
-  let sum=0;
-  for(let i=0; i<c.length; i++) {
-     sum+=c[i];
-     if(i>=200) sum-=c[i-200];
-     basis.push(i>=199?sum/200:null);
-  }
-  for(let i=0; i<c.length; i++) {
-     if(!basis[i]){dev.push(null); continue;}
-     let s=0;
-     for(let j=0; j<200; j++) s+=Math.pow(c[i-j]-basis[i], 2);
-     dev.push(Math.sqrt(s/200));
-  }
-  
-  lastBasis = basis[basis.length-1];
-  lastDev = dev[dev.length-1];
-  lastATR = atrArr[atrArr.length-1];
-
-  signals = [];
-  const prio = { 'C30':6, 'C25':5, 'C20':4, 'C15':3, 'C10':2, 'C05':1, 'A30':6, 'A25':5, 'A20':4, 'A15':3, 'A10':2 };
-  
-  for(let i=200; i<rawData.length; i++) {
-     const k=rawData[i]; const b=basis[i]; const d=dev[i]; const atr=atrArr[i];
-     if(!d) continue;
-     let type=null;
-     if(k.l <= b-3.0*d && k.c > b-3.0*d) type='C30';
-     else if(k.l <= b-2.5*d && k.c > b-2.5*d) type='C25';
-     else if(k.l <= b-2.0*d && k.c > b-2.0*d) type='C20';
-     else if(k.l <= b-1.5*d && k.c > b-1.5*d) type='C15';
-     else if(k.l <= b-1.0*d && k.c > b-1.0*d) type='C10';
-     else if(k.l <= b-0.5*d && k.c > b-0.5*d) type='C05';
-     else if(k.h >= b+3.0*d && k.c < b+3.0*d) type='A30'; 
-     else if(k.h >= b+2.5*d && k.c < b+2.5*d) type='A25';
-     else if(k.h >= b+2.0*d && k.c < b+2.0*d) type='A20';
-     else if(k.h >= b+1.5*d && k.c < b+1.5*d) type='A15';
-     else if(k.h >= b+1.0*d && k.c < b+1.0*d) type='A10';
-     
-     if(type) {
-         const isSell = type.startsWith('A');
-         const yPos = isSell ? (k.h + (atr * 4.0)) : (k.l - (atr * 4.0));
-         const rot = isSell ? 180 : 0;
-         signals.push({x:k.x, y:yPos, t:type, p:prio[type], rot:rot});
-     }
-  }
-  
-  const cleanSigs = [];
-  let lastT = null;
-  signals.forEach(s => { if(s.t !== lastT) { cleanSigs.push(s); lastT = s.t; } });
-  signals = cleanSigs;
-
-  renderChart(basis, dev);
-  renderList();
-  updateLiveCalculations();
-}
-
-function updateLiveCalculations() {
-   const z = (livePrice - lastBasis) / lastDev;
-   const brl = globalCaixaReais; 
-   document.getElementById('sigmaVal').innerText = (z>0?"+":"")+z.toFixed(2)+"σ";
-   document.getElementById('heatPtr').style.left = `${Math.max(0, Math.min(100, ((z+3.5)/7)*100))}%`;
-   
-   const box = document.getElementById('recBox'); 
-   const act = document.getElementById('recAct'); 
-   const det = document.getElementById('recDet');
-   
-   if(signals.length > 0) {
-       const lastSig = signals[signals.length-1];
-       const style = LEVELS[lastSig.t];
-       const isBuy = lastSig.t.startsWith('C');
-       const val = brl * style.p;
-       const color = style.color;
-       
-       box.style.borderColor = color;
-       box.style.background = isBuy ? "rgba(0,100,255,0.15)" : "rgba(0,255,0,0.15)";
-       
-       act.innerText = isBuy ? `COMPRA ${lastSig.t}` : `ACUMULAR ${lastSig.t}`;
-       act.style.color = color;
-       
-       det.innerHTML = `ALVO: R$ ${val.toFixed(2)}<br><span style='font-size:9px;color:#aaa'>Sinal: ${new Date(lastSig.x).toLocaleDateString()}</span>`;
-   } else {
-       act.innerText = "AGUARDANDO DADOS";
-       det.innerText = "Carregando candles...";
-   }
-
-   let lvl = null;
-   const keys = Object.keys(LEVELS).sort((a,b)=>Math.abs(LEVELS[b].s)-Math.abs(LEVELS[a].s));
-   for(let k of keys) { if(Math.abs(z - LEVELS[k].s) < 0.25) { lvl = LEVELS[k]; lvl.code = k; break; } }
-   
-   const zoneSpan = document.getElementById('zoneProb');
-   if(lvl) {
-       zoneSpan.innerText = `${lvl.code} (≈ ${lvl.desc})`;
-       zoneSpan.style.color = lvl.color;
-   } else {
-       zoneSpan.innerText = "NEUTRO";
-       zoneSpan.style.color = "#999";
-   }
-
-   const volPct = (lastATR / livePrice) * 1000;
-   drawGauge('gVol', Math.min(100, volPct*2), '#00ff9d');
-   document.getElementById('tVol').innerText = volPct.toFixed(1);
-
-   let mom = 0;
-   if(priceHistory.length >= 2) {
-       const oldP = priceHistory[0].p;
-       mom = ((livePrice - oldP) / oldP) * 5000; 
-   }
-   const accGauge = 50 + mom; 
-   drawGauge('gAcc', Math.max(0, Math.min(100, accGauge)), '#f7931a');
-   document.getElementById('tAcc').innerText = mom.toFixed(2);
-}
-
-function drawGauge(id, val, col) {
-    const ctx=document.getElementById(id).getContext('2d');
-    ctx.clearRect(0,0,60,30);
-    ctx.beginPath(); ctx.arc(30,30,25,Math.PI,0);
-    ctx.lineWidth=4; ctx.strokeStyle="#333"; ctx.stroke();
-    const ang = Math.PI + (val/100)*Math.PI;
-    ctx.beginPath(); ctx.arc(30,30,25,Math.PI,ang);
-    ctx.lineWidth=4; ctx.strokeStyle=col; ctx.stroke();
-}
-
-function renderChart(basis, dev) {
-  const ctx = document.getElementById('mainChart').getContext('2d');
-  if(chart) chart.destroy();
-  
-  const line = (d, c) => ({
-      data: d.map((v,i)=>({x:rawData[i].x, y:v})),
-      borderColor: c, borderWidth: 0.6,
-      pointRadius: 0, fill: false, tension:0.1, tooltip: {enabled: false}
-  });
-
-  const ds = [
-      {label:'Price', data:rawData.map(d=>({x:d.x, y:d.c})), borderColor:'transparent', pointRadius:0}, 
-      line(basis.map((b,i)=>b-3*dev[i]), '#00ccff'),
-      line(basis.map((b,i)=>b-2*dev[i]), '#0066ff'),
-      line(basis.map((b,i)=>b-1*dev[i]), '#3366ff'),
-      line(basis, '#f7931a'),
-      line(basis.map((b,i)=>b+1*dev[i]), '#66ff66'),
-      line(basis.map((b,i)=>b+2*dev[i]), '#00ff00'),
-      line(basis.map((b,i)=>b+3*dev[i]), '#ccffcc'),
-      {
-          label: 'Sinais',
-          data: signals.map(s=>({x:s.x, y:s.y, t:s.t, rot:s.rot})),
-          type: 'scatter',
-          pointStyle: 'triangle',
-          pointRadius: (c) => { const t = c.raw.t; return LEVELS[t] ? LEVELS[t].size : 6; },
-          pointBackgroundColor: (c) => { const t = c.raw.t; return LEVELS[t] ? LEVELS[t].color : '#fff'; },
-          pointBorderColor: '#000',
-          pointRotation: (ctx) => ctx.raw ? ctx.raw.rot : 0
-      }
-  ];
-
-  const lastTime = rawData[rawData.length-1].x;
-  const tfMs = rawData.length > 1 ? (rawData[1].x - rawData[0].x) : 3600000;
-  const maxPanLimit = lastTime + (500 * tfMs);
-  const initialFuture = lastTime + (15 * tfMs);
-  const zoomStartIdx = Math.max(0, rawData.length - 100);
-  const minTime = rawData[zoomStartIdx].x;
-
-  chart = new Chart(ctx, {
-      type: 'line', data: {datasets: ds},
-      options: {
-          responsive: true, maintainAspectRatio: false, animation: false,
-          layout: { padding: { right: 60 } },
-          plugins: {
-              legend: {display: false},
-              tooltip: {
-                  mode: 'nearest', intersect: true,
-                  callbacks: {
-                      label: (c) => {
-                          const p = c.raw;
-                          if(c.datasetIndex !== 8) return '';
-                          const lvl = LEVELS[p.t];
-                          const brl = globalCaixaReais; 
-                          
-                          if(p.t.startsWith('C')) {
-                              const val = brl * lvl.p;
-                              return `🔵 COMPRAR: R$ ${val.toFixed(2)}`;
-                          } else {
-                              const targetBRL = brl * lvl.p;
-                              return `🟢 ACUMULAR: Meta +R$ ${targetBRL.toFixed(2)}`;
-                          }
-                      }
-                  }
-              },
-              zoom: { 
-                  pan:{enabled:true, mode:'x'}, 
-                  zoom:{wheel:{enabled:true}, pinch:{enabled:true}, mode:'x'},
-                  limits: { x: { min: rawData[0].x, max: maxPanLimit } } 
-              }
-          },
-          scales: {
-              x: { type:'time', grid:{color:'#222'}, ticks:{color:'#666'}, min: minTime, max: initialFuture },
-              y: {position:'right', grid:{color:'#222'}, ticks:{color:'#666'}}
-          }
-      },
-      plugins: [customPlugin]
-  });
-}
-
-function renderList() {
-    const l = document.getElementById('sigList'); l.innerHTML = '';
-    [...signals].reverse().slice(0,100).forEach(s => {
-        const d = document.createElement('div');
-        d.className = 'sig-item';
-        const style = LEVELS[s.t];
-        const col = style ? style.color : '#fff';
-        const arrow = s.t.startsWith('C') ? '▲' : '▼';
-        d.innerHTML = `<div style="color:#666">${new Date(s.x).toLocaleDateString()}</div><div style="color:${col}; font-weight:bold">${arrow} ${s.t}</div><div style="text-align:right; font-family:var(--mono)">R$ ${s.y.toFixed(0)}</div>`;
-        d.onclick = () => chart.zoomScale('x', {min: s.x-5e7, max: s.x+5e7}, 'default');
-        l.appendChild(d);
-    });
-}
-
-async function updateTicker() {
-    try {
-        const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCBRL');
-        const json = await res.json();
-        livePrice = parseFloat(json.price);
-        localStorage.setItem('btc_last_price', livePrice);
-        document.getElementById('price-box').innerText = `R$ ${livePrice.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
-        priceHistory.push({t: Date.now(), p: livePrice});
-        if(priceHistory.length > 10) priceHistory.shift();
-        
-        const vBuy = parseFloat(document.getElementById('valorBtcCompra').value);
-        if(vBuy > 0) {
-            const sats = Math.floor((vBuy / livePrice) * 100000000);
-            document.getElementById('previewBtc').innerText = `≈ ${sats.toLocaleString()} sats`;
+            document.getElementById('opStartDate').value = savedDate;
+            document.getElementById('selicRateInput').value = savedSelic;
         }
-        if(chart) chart.draw();
-        updateFinTextOnly(); 
-        updateLiveCalculations(); 
-    } catch(e) {}
-}
 
-window.onload = () => {
-    document.getElementById('dataTurno').value = new Date().toISOString().split('T')[0];
-    document.getElementById('dataGasto').value = new Date().toISOString().split('T')[0];
-    document.getElementById('dataSats').value = new Date().toISOString().split('T')[0];
-    renderFinFull(); 
-    startEngine();
-    setInterval(updateTicker, 2000); 
-    setInterval(() => startEngine(), 120000); 
-    setInterval(() => renderFinFull(), 600000); 
-};
-</script>
+        function saveAndRefresh() {
+            localStorage.setItem('skynet_ferrari_start_date', document.getElementById('opStartDate').value);
+            localStorage.setItem('skynet_selic_rate', document.getElementById('selicRateInput').value);
+            refreshEngine();
+        }
+
+        function erfNativo(x) {
+            const a1 =  0.254829592, a2 = -0.284496736, a3 =  1.421413741;
+            const a4 = -1.453152027, a5 =  1.061405429, p  =  0.3275911;
+            const sign = (x < 0) ? -1 : 1;
+            x = Math.abs(x);
+            const t = 1.0 / (1.0 + p * x);
+            const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+            return sign * y;
+        }
+
+        function cdfNormal(x) {
+            return (1.0 + erfNativo(x / Math.sqrt(2.0))) / 2.0;
+        }
+
+        function pdfNormal(x) {
+            return Math.exp(-0.5 * x * x) / Math.sqrt(2.0 * Math.PI);
+        }
+
+        function calculateHistoricalIV(dataIndex, lookback = 30) {
+            if (dataIndex < lookback) dataIndex = lookback;
+            let logReturns = [];
+            for (let i = dataIndex - lookback + 1; i <= dataIndex; i++) {
+                if (i > 0 && rawKlinesData[i] && rawKlinesData[i-1]) {
+                    const r = Math.log(rawKlinesData[i].close / rawKlinesData[i-1].close);
+                    logReturns.push(r);
+                }
+            }
+            if (logReturns.length === 0) return 0.60;
+            
+            const mean = logReturns.reduce((a, b) => a + b, 0) / logReturns.length;
+            const variance = logReturns.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (logReturns.length - 1);
+            const dailyStd = Math.sqrt(variance);
+            
+            return dailyStd * Math.sqrt(365);
+        }
+
+        function calculateBlackScholes(S, K, T, sigma, r, type = 'CALL') {
+            if (S <= 0 || K <= 0 || T <= 0 || sigma <= 0) {
+                return { price: 0, delta: 0, theta: 0 };
+            }
+
+            const d1 = (Math.log(S / K) + (r + (sigma * sigma) / 2.0) * T) / (sigma * Math.sqrt(T));
+            const d2 = d1 - sigma * Math.sqrt(T);
+
+            let price = 0, delta = 0, theta = 0;
+
+            if (type === 'CALL') {
+                price = S * cdfNormal(d1) - K * Math.exp(-r * T) * cdfNormal(d2);
+                delta = cdfNormal(d1);
+                
+                const term1 = -(S * pdfNormal(d1) * sigma) / (2 * Math.sqrt(T));
+                const term2 = r * K * Math.exp(-r * T) * cdfNormal(d2);
+                theta = (term1 - term2) / 365.0;
+            } else {
+                price = K * Math.exp(-r * T) * cdfNormal(-d2) - S * cdfNormal(-d1);
+                delta = cdfNormal(d1) - 1.0;
+                
+                const term1 = -(S * pdfNormal(d1) * sigma) / (2 * Math.sqrt(T));
+                const term2 = r * K * Math.exp(-r * T) * cdfNormal(-d2);
+                theta = (term1 + term2) / 365.0;
+            }
+
+            return { price: Math.max(0, price), delta, theta };
+        }
+
+        function resetScale() {
+            if(!chartEngine) return;
+            chartEngine.options.scales.x.min = undefined; 
+            chartEngine.options.scales.x.max = undefined;
+            chartEngine.options.scales.y.min = undefined; 
+            chartEngine.options.scales.y.max = undefined;
+            chartEngine.update('none');
+        }
+
+        function initChart() {
+            const canvas = document.getElementById('chartEngine');
+            chartEngine = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    datasets: [
+                        { label: 'Preço BTC (BRL)', data: [], borderColor: '#ffffff', borderWidth: 1.5, pointRadius: 0, order: 1 },
+                        { label: 'Abertura Opção (Ponto 0)', data: [], borderColor: '#00ff41', backgroundColor: '#00ff41', pointRadius: 6, showLine: false, order: 2 },
+                        { label: 'Vencimento 30D Target', data: [], borderColor: '#f59e0b', backgroundColor: '#f59e0b', pointRadius: 6, showLine: false, order: 3 },
+                        { label: 'Linha Spot Data', data: [], borderColor: '#f59e0b', borderWidth: 1, borderDash: [4, 4], pointRadius: 0, order: 4 },
+                        { label: 'Faixa Call Recomendada (Δ ≈ 0.20)', data: [], borderColor: '#00ffff', borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, order: 5 },
+                        { label: 'Faixa Put Recomendada (Δ ≈ -0.20)', data: [], borderColor: '#a855f7', borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, order: 6 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    onClick: (e, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const point = rawKlinesData[index];
+                            if (point) {
+                                const clickDateStr = new Date(point.time).toISOString().split('T')[0];
+                                document.getElementById('opStartDate').value = clickDateStr;
+                                saveAndRefresh();
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { type: 'time', grid: { display: false }, ticks: { color: '#555' } },
+                        y: { position: 'right', grid: { color: '#111' }, ticks: { color: '#888' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            let state = { drag: false, lx: 0, ly: 0 };
+            canvas.addEventListener('mousedown', e => { state.drag = true; state.lx = e.clientX; state.ly = e.clientY; });
+            window.addEventListener('mouseup', () => state.drag = false);
+            canvas.addEventListener('mousemove', e => {
+                if(!state.drag) return;
+                const s = chartEngine.scales;
+                const dx = ((e.clientX - state.lx) / s.x.width) * (s.x.max - s.x.min);
+                const dy = ((e.clientY - state.ly) / s.y.height) * (s.y.max - s.y.min);
+                chartEngine.options.scales.x.min = (chartEngine.options.scales.x.min || s.x.min) - dx;
+                chartEngine.options.scales.x.max = (chartEngine.options.scales.x.max || s.x.max) - dx;
+                chartEngine.options.scales.y.min = (chartEngine.options.scales.y.min || s.y.min) + dy;
+                chartEngine.options.scales.y.max = (chartEngine.options.scales.y.max || s.y.max) + dy;
+                state.lx = e.clientX; state.ly = e.clientY;
+                chartEngine.update('none');
+            });
+            canvas.addEventListener('wheel', e => {
+                e.preventDefault();
+                const s = chartEngine.scales, f = e.deltaY > 0 ? 1.1 : 0.9;
+                const xr = (s.x.max - s.x.min) * f, yr = (s.y.max - s.y.min) * f;
+                const xm = (s.x.max + s.x.min)/2, ym = (s.y.max + s.y.min)/2;
+                chartEngine.options.scales.x.min = xm - xr/2; chartEngine.options.scales.x.max = xm + xr/2;
+                chartEngine.options.scales.y.min = ym - yr/2; chartEngine.options.scales.y.max = ym + yr/2;
+                chartEngine.update('none');
+            }, {passive: false});
+        }
+
+        async function loadHistoricalData() {
+            try {
+                const res = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCBRL&interval=1d&limit=1000');
+                const data = await res.json();
+                
+                rawKlinesData = data.map(d => ({
+                    time: d[0],
+                    close: parseFloat(d[4])
+                }));
+
+                refreshEngine();
+                connectWebSocket();
+            } catch(e) {
+                console.error("Erro dados klines:", e);
+            }
+        }
+
+        function connectWebSocket() {
+            if(ws) ws.close();
+            ws = new WebSocket('wss://stream.binance.com:9443/ws/btcbrl@kline_1d');
+            ws.onmessage = (e) => {
+                const k = JSON.parse(e.data).k;
+                if(rawKlinesData.length > 0) {
+                    rawKlinesData[rawKlinesData.length - 1].close = parseFloat(k.c);
+                }
+                refreshEngine();
+            };
+        }
+
+        function refreshEngine() {
+            if(!rawKlinesData.length || !chartEngine) return;
+
+            const selectedDateStr = document.getElementById('opStartDate').value;
+            const parts = selectedDateStr.split('-');
+            const selectedMs = new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+
+            const selicInputVal = parseFloat(document.getElementById('selicRateInput').value) || 10.50;
+            const r = selicInputVal / 100.0;
+
+            let simIndex = rawKlinesData.findIndex(d => d.time >= selectedMs);
+            if (simIndex === -1) simIndex = rawKlinesData.length - 1;
+
+            const simDataPoint = rawKlinesData[simIndex];
+            const spotPrice = simDataPoint.close;
+
+            const autoIV = calculateHistoricalIV(simIndex, 30);
+            const sigma = autoIV;
+            const T = 30 / 365.0;
+
+            const futureIndex = Math.min(rawKlinesData.length - 1, simIndex + 30);
+            const futureDataPoint = rawKlinesData[futureIndex];
+            const priceIn30Days = futureDataPoint ? futureDataPoint.close : null;
+            const daysEvaluated = futureIndex - simIndex;
+
+            const percentages = [0.30, 0.25, 0.20, 0.15, 0.10, 0.05, 0.0, -0.05, -0.10, -0.15, -0.20, -0.25, -0.30];
+            let recCallStrike = 0;
+            let recPutStrike = 0;
+
+            percentages.forEach(p => {
+                const strikeVal = Math.round((spotPrice * (1 + p)) / 2500) * 2500;
+                const isCall = p >= 0;
+                const bs = calculateBlackScholes(spotPrice, strikeVal, T, sigma, r, isCall ? 'CALL' : 'PUT');
+
+                if (isCall && Math.abs(bs.delta - 0.20) < 0.08 && recCallStrike === 0) recCallStrike = strikeVal;
+                if (!isCall && Math.abs(Math.abs(bs.delta) - 0.20) < 0.08 && recPutStrike === 0) recPutStrike = strikeVal;
+            });
+
+            let priceSeries = [];
+            let spotLineSeries = [];
+            let callZoneSeries = [];
+            let putZoneSeries = [];
+
+            let openPointSeries = [{ x: simDataPoint.time, y: spotPrice }];
+            let expirePointSeries = (futureDataPoint && futureIndex !== simIndex) ? [{ x: futureDataPoint.time, y: futureDataPoint.close }] : [];
+
+            rawKlinesData.forEach(d => {
+                priceSeries.push({ x: d.time, y: d.close });
+                spotLineSeries.push({ x: d.time, y: spotPrice });
+                callZoneSeries.push({ x: d.time, y: recCallStrike });
+                putZoneSeries.push({ x: d.time, y: recPutStrike });
+            });
+
+            let tableRows = [];
+            percentages.forEach(p => {
+                const strikeVal = Math.round((spotPrice * (1 + p)) / 2500) * 2500;
+                const isCall = p >= 0;
+                const typeText = isCall ? 'CALL' : 'PUT';
+                
+                const bs = calculateBlackScholes(spotPrice, strikeVal, T, sigma, r, typeText);
+                const distPct = p * 100.0;
+
+                if (p === 0.0) {
+                    tableRows.push(`
+                        <tr class="row-spot">
+                            <td style="color:var(--yellow);">SPOT</td>
+                            <td style="color:var(--yellow);">R$ ${spotPrice.toLocaleString('pt-BR', {minimumFractionDigits: 0})}</td>
+                            <td>0.00%</td>
+                            <td colspan="3" style="text-align:center;">--- PREÇO SPOT NA DATA ---</td>
+                        </tr>
+                    `);
+                } else {
+                    tableRows.push(`
+                        <tr class="${isCall ? 'row-call' : 'row-put'}">
+                            <td style="font-weight:bold; color:${isCall ? 'var(--accent)' : 'var(--purple)'};">${typeText}</td>
+                            <td>R$ ${strikeVal.toLocaleString('pt-BR')}</td>
+                            <td>${distPct >= 0 ? '+' : ''}${distPct.toFixed(0)}%</td>
+                            <td style="font-weight:bold; color:#00ff41;">R$ ${bs.price.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td>${bs.delta.toFixed(2)}</td>
+                            <td style="color:#ff3333;">R$ ${bs.theta.toFixed(2)}</td>
+                        </tr>
+                    `);
+                }
+            });
+
+            let auditCallText = "EM CURSO";
+            let auditPutText = "EM CURSO";
+            let isFinished = false;
+
+            if (priceIn30Days && daysEvaluated >= 25) {
+                isFinished = true;
+                const isCallExercised = priceIn30Days >= recCallStrike;
+                auditCallText = isCallExercised ? "EXERCIDO (VENDIDO)" : "EXPIRADO $0 (LUCRO)";
+                
+                const isPutExercised = priceIn30Days <= recPutStrike;
+                auditPutText = isPutExercised ? "EXERCIDO (COMPROU)" : "EXPIRADO $0 (LUCRO)";
+            }
+
+            document.getElementById('tableBody').innerHTML = tableRows.join('');
+            
+            const statusTag = document.getElementById('auditStatusTag');
+            statusTag.innerText = isFinished ? "CONCLUÍDO (30D)" : "EM CURSO";
+            statusTag.style.color = isFinished ? "var(--green)" : "var(--yellow)";
+
+            const auditCallValEl = document.getElementById('auditCallValue');
+            auditCallValEl.innerText = auditCallText;
+            auditCallValEl.style.color = auditCallText.includes("EXPIRADO") ? "#00ff41" : (auditCallText.includes("EXERCIDO") ? "#ff3333" : "#f59e0b");
+
+            const auditPutValEl = document.getElementById('auditPutValue');
+            auditPutValEl.innerText = auditPutText;
+            auditPutValEl.style.color = auditPutText.includes("EXPIRADO") ? "#00ff41" : (auditPutText.includes("EXERCIDO") ? "#a855f7" : "#f59e0b");
+
+            document.getElementById('mSpot').innerText = `R$ ${spotPrice.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('mIv').innerText = `${(autoIV * 100).toFixed(1)}%`;
+            document.getElementById('mRate').innerText = `${selicInputVal.toFixed(2)}% (BCB)`;
+            document.getElementById('mRecCall').innerText = recCallStrike > 0 ? `R$ ${recCallStrike.toLocaleString('pt-BR')}` : "R$ ---";
+            document.getElementById('mRecPut').innerText = recPutStrike > 0 ? `R$ ${recPutStrike.toLocaleString('pt-BR')}` : "R$ ---";
+            
+            document.getElementById('mAuditCall').innerText = auditCallText;
+            document.getElementById('mAuditCall').style.color = auditCallValEl.style.color;
+
+            document.getElementById('mAuditPut').innerText = auditPutText;
+            document.getElementById('mAuditPut').style.color = auditPutValEl.style.color;
+
+            document.getElementById('mainPrice').innerText = `R$ ${spotPrice.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('hudSpot').innerText = `SPOT (DATA): R$ ${spotPrice.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('hudDate').innerText = `DATA OPERAÇÃO: ${new Date(simDataPoint.time).toLocaleDateString('pt-BR')}`;
+            document.getElementById('hud30d').innerText = priceIn30Days ? `PREÇO EM 30 DIAS: R$ ${priceIn30Days.toLocaleString('pt-BR', {minimumFractionDigits: 2})}` : "PREÇO EM 30 DIAS: EM CURSO";
+
+            chartEngine.data.datasets[0].data = priceSeries;
+            chartEngine.data.datasets[1].data = openPointSeries;
+            chartEngine.data.datasets[2].data = expirePointSeries;
+            chartEngine.data.datasets[3].data = spotLineSeries;
+            chartEngine.data.datasets[4].data = callZoneSeries;
+            chartEngine.data.datasets[5].data = putZoneSeries;
+
+            chartEngine.update('none');
+        }
+
+        window.onload = () => {
+            loadSavedSettings();
+            initChart();
+            loadHistoricalData();
+            fetchSelicBCB(); // Consulta a SELIC em tempo real no Banco Central
+        };
+    </script>
 </body>
 </html>
+
+```
